@@ -1,3 +1,0 @@
-[INFO] [1773556937.210198652] [state_bridge]: bridge 启动成功
-[INFO] [1773556937.212312234] [state_bridge]: HTTP 服务启动成功: http://127.0.0.1:8000/api/state
-[INFO] [1773556937.338909634] [state_bridge]: 收到首条消息: /judge/game_status

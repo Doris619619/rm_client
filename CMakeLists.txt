@@ -80,10 +80,25 @@ target_link_libraries(judge_receiver
 	${PAHO_MQTT_C_LIB}
 )
 
+add_executable(mock_custom_image_pub
+	src/mock_custom_image_pub.cpp
+	${PROTO_SRCS}
+	${PROTO_HDRS}
+)
+
+target_include_directories(mock_custom_image_pub PRIVATE ${COMMON_INCLUDE_DIRS})
+ament_target_dependencies(mock_custom_image_pub rclcpp)
+target_link_libraries(mock_custom_image_pub
+	${Protobuf_LIBRARIES}
+	${PAHO_MQTTPP_LIB}
+	${PAHO_MQTT_C_LIB}
+)
+
 install(TARGETS
 	semi_auto_keyboard
 	judge_sender
 	judge_receiver
+	mock_custom_image_pub
 	DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -1,5 +1,6 @@
 const API_URL = "http://127.0.0.1:8000/api/state";
 const POLL_MS = 400;
+const AUX_IMAGE_STALE_SEC = 1.2;
 
 const FRESHNESS_THRESHOLDS = {
   game: 2,
@@ -64,6 +65,82 @@ function setFreshness(elId, isoText, thresholdSec) {
   el.className = result.className;
 }
 
+function decodeBase64ToBytes(base64Text) {
+  if (!base64Text || typeof base64Text !== "string") return null;
+  try {
+    const raw = atob(base64Text);
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) {
+      out[i] = raw.charCodeAt(i) & 0xff;
+    }
+    return out;
+  } catch (_err) {
+    return null;
+  }
+}
+
+function setAuxState(text, className) {
+  const el = byId("auxImageState");
+  el.textContent = text;
+  el.className = `aux-image-state ${className}`;
+}
+
+function clearAuxCanvas() {
+  const canvas = byId("auxImageCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = 48;
+  canvas.height = 48;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function renderAuxImage(customImage) {
+  const metaEl = byId("auxImageMeta");
+  if (!customImage || typeof customImage !== "object") {
+    clearAuxCanvas();
+    setAuxState("NO DATA", "no-data");
+    metaEl.textContent = "48x48 GRAY / frame #--";
+    return;
+  }
+
+  const width = toNumber(customImage.width) || 48;
+  const height = toNumber(customImage.height) || 48;
+  const frameId = show(customImage.frame_id);
+  const encoding = String(customImage.encoding || "GRAY8");
+  const bytes = decodeBase64ToBytes(customImage.data_base64);
+
+  metaEl.textContent = `${width}x${height} ${encoding} / frame #${frameId}`;
+  if (!bytes) {
+    clearAuxCanvas();
+    setAuxState("NO DATA", "no-data");
+    return;
+  }
+
+  const canvas = byId("auxImageCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = width;
+  canvas.height = height;
+
+  const pixelCount = width * height;
+  const imageData = ctx.createImageData(width, height);
+  for (let i = 0; i < pixelCount; i += 1) {
+    const v = i < bytes.length ? bytes[i] : 0;
+    const p = i * 4;
+    imageData.data[p] = v;
+    imageData.data[p + 1] = v;
+    imageData.data[p + 2] = v;
+    imageData.data[p + 3] = 255;
+  }
+  ctx.putImageData(imageData, 0, 0);
+
+  const updatedTs = parseIsoTime(customImage.updated_at);
+  if (updatedTs === null) {
+    setAuxState("STALE", "stale");
+    return;
+  }
+  const ageSec = (Date.now() - updatedTs) / 1000;
+  setAuxState(ageSec <= AUX_IMAGE_STALE_SEC ? "ONLINE" : "STALE", ageSec <= AUX_IMAGE_STALE_SEC ? "online" : "stale");
+}
+
 function buildGlobalSummary(gu) {
   if (!gu || typeof gu !== "object") return null;
   return {
@@ -105,6 +182,7 @@ function renderState(data) {
   const gu = data?.global_unit_status || null;
   const rd = data?.robot_dynamic_status || null;
   const gc = data?.guard_ctrl_result || null;
+  const ci = data?.custom_image || null;
   const meta = data?.meta || {};
 
   byId("redScore").textContent = show(gs?.red_score);
@@ -141,6 +219,8 @@ function renderState(data) {
   setFreshness("freshGlobal", meta?.last_update_global_unit_status, FRESHNESS_THRESHOLDS.global);
   setFreshness("freshRobot", meta?.last_update_robot_dynamic_status, FRESHNESS_THRESHOLDS.robot);
   setFreshness("freshAck", meta?.last_update_guard_ctrl_result, FRESHNESS_THRESHOLDS.ack);
+
+  renderAuxImage(ci);
 }
 
 async function poll() {
@@ -155,6 +235,7 @@ async function poll() {
       global_unit_status: null,
       robot_dynamic_status: null,
       guard_ctrl_result: null,
+      custom_image: null,
       meta: { bridge_alive: false },
     });
   }

@@ -50,14 +50,44 @@
         <span class="reticle-h"></span>
       </div>
 
-      <section class="aux-image-card" aria-label="辅助图像小窗">
-        <h2>AUX IMAGE</h2>
-        <div class="aux-image-frame">
-          <canvas id="auxImageCanvas" width="48" height="48"></canvas>
-        </div>
-        <div id="auxImageState" class="aux-image-state no-data">NO DATA</div>
-        <div id="auxImageMeta" class="aux-image-meta">48x48 GRAY / frame #--</div>
-      </section>
+      <div class="right-column" aria-label="右侧信息区">
+        <section class="aux-image-card" aria-label="辅助图像小窗">
+          <h2>AUX IMAGE</h2>
+          <div class="aux-image-frame-wrap">
+            <div class="aux-image-frame">
+              <canvas id="auxImageCanvas" width="48" height="48"></canvas>
+            </div>
+          </div>
+          <div id="auxImageState" class="aux-image-state no-data">NO DATA</div>
+          <div id="auxImageMeta" class="aux-image-meta">48x48 GRAY / frame #--</div>
+        </section>
+
+        <section class="right-feedback" aria-label="右下反馈区">
+          <h2>COMMAND FEEDBACK</h2>
+          <div class="status-grid feedback">
+            <div class="cell">
+              <div class="k">最近 command_id</div>
+              <div id="cmdId" class="v big">--</div>
+            </div>
+            <div class="cell">
+              <div class="k">最近 result_code</div>
+              <div id="resultCode" class="v big">--</div>
+            </div>
+            <div class="cell full">
+              <div class="k">最近回执时间</div>
+              <div id="ackTime" class="v">--</div>
+            </div>
+          </div>
+
+          <h3>LINK FRESHNESS</h3>
+          <div class="freshness-list">
+            <div class="fresh-row"><span>GAME</span><span id="freshGame" class="fresh unknown">--</span></div>
+            <div class="fresh-row"><span>GLOBAL</span><span id="freshGlobal" class="fresh unknown">--</span></div>
+            <div class="fresh-row"><span>ROBOT</span><span id="freshRobot" class="fresh unknown">--</span></div>
+            <div class="fresh-row"><span>ACK</span><span id="freshAck" class="fresh unknown">--</span></div>
+          </div>
+        </section>
+      </div>
 
       <section class="left-status" aria-label="左下状态区">
         <h2>ROBOT STATUS</h2>
@@ -91,31 +121,6 @@
         </div>
       </section>
 
-      <section class="right-feedback" aria-label="右下反馈区">
-        <h2>COMMAND FEEDBACK</h2>
-        <div class="status-grid feedback">
-          <div class="cell">
-            <div class="k">最近 command_id</div>
-            <div id="cmdId" class="v big">--</div>
-          </div>
-          <div class="cell">
-            <div class="k">最近 result_code</div>
-            <div id="resultCode" class="v big">--</div>
-          </div>
-          <div class="cell full">
-            <div class="k">最近回执时间</div>
-            <div id="ackTime" class="v">--</div>
-          </div>
-        </div>
-
-        <h3>LINK FRESHNESS</h3>
-        <div class="freshness-list">
-          <div class="fresh-row"><span>GAME</span><span id="freshGame" class="fresh unknown">--</span></div>
-          <div class="fresh-row"><span>GLOBAL</span><span id="freshGlobal" class="fresh unknown">--</span></div>
-          <div class="fresh-row"><span>ROBOT</span><span id="freshRobot" class="fresh unknown">--</span></div>
-          <div class="fresh-row"><span>ACK</span><span id="freshAck" class="fresh unknown">--</span></div>
-        </div>
-      </section>
     </div>
   </div>
 

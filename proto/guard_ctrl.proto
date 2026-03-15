@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+// =========================
+// 2.2.2 GameStatus (服务器->自定义客户端)
+// =========================
+message GameStatus {
+  uint32 current_round = 1;
+  uint32 total_rounds = 2;
+  uint32 red_score = 3;
+  uint32 blue_score = 4;
+  uint32 current_stage = 5;
+  int32 stage_countdown_sec = 6;
+  int32 stage_elapsed_sec = 7;
+  bool is_paused = 8;
+}
+
+// =========================
+// SentinelStatusSync (服务器->自定义客户端)
+// =========================
+message SentinelStatusSync {
+  uint32 posture_id = 1;
+  bool is_weakened = 2;
+}
+
+// =========================
+// GuardCtrlCommand (自定义客户端->服务器)
+// =========================
+message GuardCtrlCommand {
+  uint32 command_id = 1;
+}
+
+// =========================
+// GuardCtrlResult (服务器->自定义客户端)
+// result_code: 0=成功，其它=失败
+// =========================
+message GuardCtrlResult {
+  uint32 command_id = 1;
+  uint32 result_code = 2;
+}

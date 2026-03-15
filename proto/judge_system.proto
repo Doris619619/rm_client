@@ -1,0 +1,249 @@
+syntax = "proto3";
+
+// ========================================
+// Judge System 完整通信协议消息定义
+// 版本: V1.1.0 (20251217)
+// 
+// 注意：GameStatus、SentinelStatusSync、GuardCtrlResult、GuardCtrlCommand
+// 已在 guard_ctrl.proto 中定义，此处仅定义其他21个消息
+// ========================================
+
+// =========================
+// 1. 全局状态信息 (2-4)
+// 注：GameStatus(1) 已在 guard_ctrl.proto中定义
+// =========================
+
+// <msg-2> GlobalUnitStatus (服务器->自定义客户端)
+// 1Hz 发送频率
+message GlobalUnitStatus {
+  uint32 base_health = 1;             // 基地当前血量（0=已摧毁）
+  uint32 base_status = 2;             // 基地状态（0:无敌,1:解除无敌护甲未展开,2:解除无敌护甲展开）
+  uint32 base_shield = 3;             // 基地当前护盾值（0=无护盾）
+  uint32 outpost_health = 4;          // 前哨站当前血量（0=已摧毁）
+  uint32 outpost_status = 5;          // 前哨站状态（0:无敌,1:存活解除无敌中部旋转,2:存活解除无敌中部停转,3:被击毁不可重建,4:被击毁可重建）
+  repeated uint32 robot_health = 6;   // 所有机器人血量（先己方后对方）
+  repeated int32 robot_bullets = 7;   // 己方机器人剩余累计发弹量
+  uint32 total_damage_red = 8;        // 己方累计总伤害
+  uint32 total_damage_blue = 9;       // 对方累计总伤害
+}
+
+// <msg-3> GlobalLogisticsStatus (服务器->自定义客户端)
+// 1Hz 发送频率
+message GlobalLogisticsStatus {
+  uint32 remaining_economy = 1;       // 己方当前经济
+  uint64 total_economy_obtained = 2;  // 己方累计总经济
+  uint32 tech_level = 3;              // 己方科技等级（工程机器人曾装配最高难度）
+  uint32 encryption_level = 4;        // 己方加密等级（雷达解析信息波机制）
+}
+
+// <msg-4> GlobalSpecialMechanism (服务器->自定义客户端)
+// 1Hz 发送频率
+message GlobalSpecialMechanism {
+  repeated uint32 mechanism_id = 1;        // 正在生效的机制ID列表（1:己方堡垒被对方占领计时,2:对方堡垒被己方占领计时）
+  repeated int32 mechanism_time_sec = 2;   // 对应的时间参数（秒）
+}
+
+// =========================
+// 2. 事件和统计 (5-6)
+// =========================
+
+// 2.1 Event (服务器->自定义客户端)
+// 触发式发送
+message Event {
+  int32 event_id = 1;    // 事件编号（1:击杀,2:基地/前哨站被摧毁,3:能量机关可激活次数变化,4:能量单元可进入激活,5:能量机关激活成功,6:能量机关被激活,7:己方英雄进入部署模式,8:己方英雄狙击伤害,9:对方英雄狙击伤害,10:己方呼叫空中支援,11:己方空中支援被打断,12:对方呼叫空中支援,13:对方空中支援被打断,14:飞镖命中,15:双方飞镖闸门开启,16:己方基地遭到攻击,17:双方前哨站停转,18:双方基地护甲展开）
+  string param = 2;      // 事件参数（含义随event_id变化）
+}
+
+// 2.2 RobotInjuryStat (服务器->自定义客户端)
+// 1Hz 发送频率
+message RobotInjuryStat {
+  uint32 total_damage = 1;                // 该次存活累计受伤总计
+  uint32 collision_damage = 2;            // 撞击伤害
+  uint32 small_projectile_damage = 3;     // 17mm弹丸伤害
+  uint32 large_projectile_damage = 4;     // 42mm弹丸伤害
+  uint32 dart_splash_damage = 5;          // 飞镖溅射伤害
+  uint32 module_offline_damage = 6;       // 模块离线扣血
+  uint32 wifi_offline_damage = 7;         // WiFi离线扣血
+  uint32 penalty_damage = 8;              // 判罚扣血
+  uint32 server_kill_damage = 9;          // 服务器强制使其战亡扣血
+  uint32 killer_id = 10;                  // 击杀者ID（0表示未检测到击杀者）
+}
+
+// =========================
+// 3. 机器人单体信息 (7-12)
+// =========================
+
+// 3.1 RobotRespawnStatus (服务器->自定义客户端)
+// 1Hz 发送频率
+message RobotRespawnStatus {
+  bool is_pending_respawn = 1;            // 是否处于待复活状态
+  uint32 total_respawn_progress = 2;      // 复活所需总读条
+  uint32 current_respawn_progress = 3;    // 当前复活读条进度
+  bool can_free_respawn = 4;              // 是否可以免费复活
+  uint32 gold_cost_for_respawn = 5;       // 花费金币复活所需金币数
+  bool can_pay_for_respawn = 6;           // 是否允许花费金币复活
+}
+
+// 3.2 RobotStaticStatus (服务器->自定义客户端)
+// 1Hz 发送频率
+message RobotStaticStatus {
+  uint32 connection_state = 1;            // 连接状态（0=未连接,1=已连接）
+  uint32 field_state = 2;                 // 上场状态（0=已上场,1=未上场）
+  uint32 alive_state = 3;                 // 存活状态（0=未知,1=存活,2=战亡）
+  uint32 robot_id = 4;                    // 机器人编号
+  uint32 robot_type = 5;                  // 机器人类型
+  uint32 performance_system_shooter = 6;  // 性能体系-发射机构（1:冷却优先,2:爆发优先,3:英雄近战优先,4:英雄远程优先）
+  uint32 performance_system_chassis = 7;  // 性能体系-底盘（1:血量优先,2:功率优先,3:英雄近战优先,4:英雄远程优先）
+  uint32 level = 8;                       // 当前等级
+  uint32 max_health = 9;                  // 最大血量
+  uint32 max_heat = 10;                   // 最大热量
+  float heat_cooldown_rate = 11;          // 热量冷却速率（每秒）
+  uint32 max_power = 12;                  // 最大功率
+  uint32 max_buffer_energy = 13;          // 最大缓冲能量
+  uint32 max_chassis_energy = 14;         // 最大底盘能量
+}
+
+// 3.3 RobotDynamicStatus (服务器->自定义客户端)
+// 10Hz 发送频率
+message RobotDynamicStatus {
+  uint32 current_health = 1;              // 当前血量
+  float current_heat = 2;                 // 当前热量
+  float last_projectile_fire_rate = 3;    // 上一次弹丸射速
+  uint32 current_chassis_energy = 4;      // 当前剩余底盘能量
+  uint32 current_buffer_energy = 5;       // 当前缓冲能量
+  uint32 current_experience = 6;          // 当前经验值
+  uint32 experience_for_upgrade = 7;      // 升级所需经验
+  uint32 total_projectiles_fired = 8;     // 累计已发弹量
+  uint32 remaining_ammo = 9;              // 剩余允许发弹量
+  bool is_out_of_combat = 10;             // 是否处于脱战状态
+  uint32 out_of_combat_countdown = 11;    // 脱战状态倒计时
+  bool can_remote_heal = 12;              // 是否可以远程补血
+  bool can_remote_ammo = 13;              // 是否可以远程补弹
+}
+
+// 3.4 RobotModuleStatus (服务器->自定义客户端)
+// 1Hz 发送频率
+message RobotModuleStatus {
+  uint32 power_manager = 1;               // 电源管理模块状态（0=离线,1=在线）
+  uint32 rfid = 2;                        // RFID模块状态（0=离线,1=在线）
+  uint32 light_strip = 3;                 // 灯条模块状态（0=离线,1=在线）
+  uint32 small_shooter = 4;               // 17mm发射机构状态（0=离线,1=在线）
+  uint32 big_shooter = 5;                 // 42mm发射机构状态（0=离线,1=在线）
+  uint32 uwb = 6;                         // 定位模块状态（0=离线,1=在线）
+  uint32 armor = 7;                       // 装甲模块状态（0=离线,1=在线）
+  uint32 video_transmission = 8;          // 图传模块状态（0=离线,1=在线）
+  uint32 capacitor = 9;                   // 电容模块状态（0=离线,1=在线）
+  uint32 main_controller = 10;            // 主控状态（0=离线,1=在线）
+}
+
+// 3.5 RobotPosition (服务器->自定义客户端)
+// 1Hz 发送频率
+message RobotPosition {
+  float x = 1;     // 世界坐标X轴
+  float y = 2;     // 世界坐标Y轴
+  float z = 3;     // 世界坐标Z轴
+  float yaw = 4;   // 朝向，单位：度，正北为0度
+}
+
+// 3.6 Buff (服务器->自定义客户端)
+// 获得增益时触发发送，此后1Hz定频发送直到失去增益
+message Buff {
+  uint32 robot_id = 1;          // 机器人ID
+  uint32 buff_type = 2;         // Buff类型（1:攻击增益,2:防御增益,3:射击热量冷却增益,4:底盘功率增益,5:回血增益,6:可兑换允许发弹量,7:地形跨越增益预备）
+  int32 buff_level = 3;         // Buff增益值
+  uint32 buff_max_time = 4;     // Buff最大剩余时间
+  uint32 buff_left_time = 5;    // Buff剩余时间
+  string msg_params = 6;        // 额外文字参数
+}
+
+// =========================
+// 4. 特殊状态 (13-20)
+// =========================
+
+// 4.1 PenaltyInfo (服务器->自定义客户端)
+// 触发式发送
+message PenaltyInfo {
+  uint32 penalty_type = 1;       // 当前受罚类型（1:黄牌,2:双方黄牌,3:红牌,4:超功率,5:超热量,6:超射速）
+  uint32 penalty_effect_sec = 2; // 当前受罚效果时长（秒）
+  uint32 total_penalty_num = 3;  // 当前判罚数量
+}
+
+// 4.2 RobotPathPlanInfo (服务器->自定义客户端)
+// 1Hz 发送频率
+message RobotPathPlanInfo {
+  uint32 intention = 1;          // 哨兵意图（1=攻击,2=防守,3=移动）
+  uint32 start_pos_x = 2;        // 起始点X坐标（分米）
+  uint32 start_pos_y = 3;        // 起始点Y坐标（分米）
+  repeated int32 offset_x = 4;   // 相对起始点X增量数组（-128~+127，长度49）
+  repeated int32 offset_y = 5;   // 相对起始点Y增量数组（-128~+127，长度49）
+  uint32 sender_id = 6;          // 发送者ID
+}
+
+// 4.3 RaderInfoToClient (服务器->自定义客户端)
+// 1Hz 发送频率
+message RaderInfoToClient {
+  uint32 target_robot_id = 1;    // 目标机器人ID
+  float target_pos_x = 2;        // 目标位置X（米）
+  float target_pos_y = 3;        // 目标位置Y（米）
+  float torward_angle = 4;       // 朝向角度
+  uint32 is_high_light = 5;      // 是否特殊标识（0=否,1=是）
+}
+
+// 4.4 CustomByteBlock (服务器->自定义客户端)
+// 50Hz 发送频率
+message CustomByteBlock {
+  bytes data = 1;  // 最大为1.2kbit的自定义数据包
+}
+
+// 4.5 TechCoreMotionStateSync (服务器->自定义客户端)
+// 1Hz 发送频率
+message TechCoreMotionStateSync {
+  uint32 maximum_difficulty_level = 1;  // 当前可选择的最高装配难度等级
+  uint32 status = 2;                    // 科技核心状态（1:未进入装配,2:已选择难度科技核心移动中,3:移动完成可进行首个步骤,4:上一个步骤已完成可进行下一个步骤,5:装配步骤已全部完成,6:已确认装配科技核心移动中）
+}
+
+// 4.6 RobotPerformanceSelectionSync (服务器->自定义客户端)
+// 1Hz 发送频率
+message RobotPerformanceSelectionSync {
+  uint32 shooter = 1;  // 发射机构性能体系
+  uint32 chassis = 2;  // 底盘性能体系
+}
+
+// 4.7 DeployModeStatusSync (服务器->自定义客户端)
+// 1Hz 发送频率
+message DeployModeStatusSync {
+  uint32 status = 1;   // 当前部署模式状态（0=未部署,1=已部署）
+}
+
+// 4.8 RuneStatusSync (服务器->自定义客户端)
+// 1Hz 发送频率
+message RuneStatusSync {
+  uint32 rune_status = 1;      // 当前能量机关状态（1:未激活,2:正在激活,3:已激活）
+  uint32 activated_arms = 2;   // 当前已激活的灯臂数量
+  uint32 average_rings = 3;    // 总环数
+}
+
+// =========================
+// 5. 哨兵/飞镖/空中 (20-22)
+// =========================
+
+// 5.1 DartSelectTargetStatusSync (服务器->自定义客户端)
+// 1Hz 发送频率
+message DartSelectTargetStatusSync {
+  uint32 target_id = 1;  // 目标ID（1=前哨站,2=基地固定目标,3=基地随机固定目标,4=基地随机移动目标,5=基地末端移动目标）
+  bool open = 2;         // 闸门状态
+}
+
+// 5.2 AirSupportStatusSync (服务器->自定义客户端)
+// 1Hz 发送频率
+message AirSupportStatusSync {
+  uint32 airsupport_status = 1;  // 空中支援状态（0:未进行空中支援,1:正在空中支援,2:空中支援被对方锁定而无法开启）
+  uint32 left_time = 2;          // 免费空中支援剩余时间
+  uint32 cost_coins = 3;         // 付费空中支援已花费金币
+}
+
+// 注意：以下消息已在 guard_ctrl.proto 中定义
+// - GameStatus         (服务器->自定义客户端，5Hz)
+// - SentinelStatusSync (服务器->自定义客户端，1Hz)
+// - GuardCtrlResult    (服务器->自定义客户端，1Hz)
+// - GuardCtrlCommand   (自定义客户端->服务器，仅发送端使用)

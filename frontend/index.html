@@ -3,88 +3,111 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RoboMaster 比赛状态面板</title>
+  <title>RoboMaster 比赛客户端</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="page">
-    <header class="topbar">
-      <h1>RoboMaster 比赛状态面板</h1>
-      <div id="bridgeStatus" class="pill offline">BRIDGE OFFLINE</div>
-    </header>
+  <div class="hud-root">
+    <div class="video-layer">
+      <div class="video-placeholder">VIDEO / CAMERA PLACEHOLDER</div>
+      <div class="scanline"></div>
+      <div class="grid-mask"></div>
+    </div>
 
-    <main class="grid">
-      <section class="panel" aria-labelledby="match-title">
-        <h2 id="match-title">A. 比赛状态区</h2>
-        <div class="kv-grid">
-          <div class="kv">
-            <span class="k">当前阶段</span>
-            <span id="currentStage" class="v big">--</span>
+    <div class="hud-overlay">
+      <header class="battle-strip">
+        <div class="team team-red">
+          <div class="team-label">RED</div>
+          <div id="redScore" class="team-score">--</div>
+        </div>
+
+        <div class="battle-meta">
+          <div class="meta-row">
+            <span class="meta-k">ROUND</span>
+            <span id="roundDisplay" class="meta-v">-- / --</span>
+            <span class="meta-sep">|</span>
+            <span class="meta-k">STAGE</span>
+            <span id="stageDisplay" class="meta-v">--</span>
+            <span class="meta-sep">|</span>
+            <span class="meta-k">REMAIN</span>
+            <span id="remainTime" class="meta-v time">--</span>
           </div>
-          <div class="kv">
-            <span class="k">阶段已过时间</span>
-            <span id="elapsedSec" class="v big">--</span>
+          <div class="meta-row">
+            <span class="meta-k">SYSTEM</span>
+            <span id="connStatus" class="meta-v">--</span>
+            <span id="bridgeBadge" class="bridge-badge offline">BRIDGE OFFLINE</span>
           </div>
-          <div class="kv">
-            <span class="k">阶段剩余时间</span>
-            <span id="countdownSec" class="v big">--</span>
+        </div>
+
+        <div class="team team-blue">
+          <div class="team-label">BLUE</div>
+          <div id="blueScore" class="team-score">--</div>
+        </div>
+      </header>
+
+      <div class="center-reticle" aria-hidden="true">
+        <span class="reticle-v"></span>
+        <span class="reticle-h"></span>
+      </div>
+
+      <section class="left-status" aria-label="左下状态区">
+        <h2>ROBOT STATUS</h2>
+        <div class="status-grid">
+          <div class="cell">
+            <div class="k">当前血量</div>
+            <div id="health" class="v big-num">--</div>
           </div>
-          <div class="kv">
-            <span class="k">局号 / 总局数</span>
-            <span id="roundInfo" class="v big">--</span>
+          <div class="cell">
+            <div class="k">剩余弹量</div>
+            <div id="ammo" class="v big-num">--</div>
           </div>
-          <div class="kv">
-            <span class="k">系统连接状态</span>
-            <span id="systemStatus" class="v">--</span>
+          <div class="cell">
+            <div class="k">可远程补弹</div>
+            <div id="canAmmo" class="v">--</div>
           </div>
+          <div class="cell">
+            <div class="k">可远程回血</div>
+            <div id="canHeal" class="v">--</div>
+          </div>
+        </div>
+
+        <h3>GLOBAL STATUS</h3>
+        <div id="globalNoData" class="empty">暂无全局关键数据</div>
+        <div id="globalSummary" class="global-summary hidden">
+          <div class="row"><span>基地血量</span><span id="globalBaseHealth">--</span></div>
+          <div class="row"><span>基地状态</span><span id="globalBaseStatus">--</span></div>
+          <div class="row"><span>前哨血量</span><span id="globalOutpostHealth">--</span></div>
+          <div class="row"><span>红方累计伤害</span><span id="globalDamageRed">--</span></div>
+          <div class="row"><span>蓝方累计伤害</span><span id="globalDamageBlue">--</span></div>
         </div>
       </section>
 
-      <section class="panel" aria-labelledby="robot-title">
-        <h2 id="robot-title">B. 机器人状态区</h2>
-        <div class="kv-grid">
-          <div class="kv">
-            <span class="k">当前血量</span>
-            <span id="health" class="v huge">--</span>
+      <section class="right-feedback" aria-label="右下反馈区">
+        <h2>COMMAND FEEDBACK</h2>
+        <div class="status-grid feedback">
+          <div class="cell">
+            <div class="k">最近 command_id</div>
+            <div id="cmdId" class="v big">--</div>
           </div>
-          <div class="kv">
-            <span class="k">剩余弹量</span>
-            <span id="ammo" class="v huge">--</span>
+          <div class="cell">
+            <div class="k">最近 result_code</div>
+            <div id="resultCode" class="v big">--</div>
           </div>
-          <div class="kv">
-            <span class="k">可远程补弹</span>
-            <span id="canAmmo" class="v">--</span>
-          </div>
-          <div class="kv">
-            <span class="k">可远程回血</span>
-            <span id="canHeal" class="v">--</span>
+          <div class="cell full">
+            <div class="k">最近回执时间</div>
+            <div id="ackTime" class="v">--</div>
           </div>
         </div>
-      </section>
 
-      <section class="panel" aria-labelledby="global-title">
-        <h2 id="global-title">C. 全局状态区</h2>
-        <pre id="globalStatus" class="json-box">暂无数据</pre>
-      </section>
-
-      <section class="panel" aria-labelledby="feedback-title">
-        <h2 id="feedback-title">D. 指令反馈区</h2>
-        <div class="kv-grid">
-          <div class="kv">
-            <span class="k">最近 command_id</span>
-            <span id="cmdId" class="v big">--</span>
-          </div>
-          <div class="kv">
-            <span class="k">最近 result_code</span>
-            <span id="resultCode" class="v big">--</span>
-          </div>
-          <div class="kv">
-            <span class="k">最近回执时间</span>
-            <span id="ackTime" class="v">--</span>
-          </div>
+        <h3>LINK FRESHNESS</h3>
+        <div class="freshness-list">
+          <div class="fresh-row"><span>GAME</span><span id="freshGame" class="fresh unknown">--</span></div>
+          <div class="fresh-row"><span>GLOBAL</span><span id="freshGlobal" class="fresh unknown">--</span></div>
+          <div class="fresh-row"><span>ROBOT</span><span id="freshRobot" class="fresh unknown">--</span></div>
+          <div class="fresh-row"><span>ACK</span><span id="freshAck" class="fresh unknown">--</span></div>
         </div>
       </section>
-    </main>
+    </div>
   </div>
 
   <script src="./app.js"></script>

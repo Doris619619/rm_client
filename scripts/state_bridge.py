@@ -100,10 +100,21 @@ class StateBridgeNode(Node):
 class StateRequestHandler(BaseHTTPRequestHandler):
     shared_state: SharedState = None
 
+    def _send_cors_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(204)
+        self._send_cors_headers()
+        self.end_headers()
+
     def do_GET(self) -> None:
         if self.path == "/api/state":
             body = json.dumps(self.shared_state.snapshot(), ensure_ascii=False).encode("utf-8")
             self.send_response(200)
+            self._send_cors_headers()
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
@@ -112,6 +123,7 @@ class StateRequestHandler(BaseHTTPRequestHandler):
 
         body = json.dumps({"error": "not_found"}).encode("utf-8")
         self.send_response(404)
+        self._send_cors_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()

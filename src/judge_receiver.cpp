@@ -11,14 +11,17 @@
 #include <mqtt/async_client.h>
 #include "judge_system.pb.h"
 #include "guard_ctrl.pb.h"
+#include "rm_client/topic_registry.hpp"
+#include "rm_client/state_store.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cctype>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // ROS 消息容器 (用于数组整合消息)
@@ -60,6 +63,16 @@ public:
       std::chrono::duration<double>(reconnect_period_sec_),
       std::bind(&JudgeReceiverNode::reconnect_tick, this)
     );
+
+    const auto receiver_topics = get_receiver_topics();
+    RCLCPP_INFO(
+      this->get_logger(),
+      "%s started, server_uri=%s, client_id=%s, qos=%d, subscribe_topics=%zu",
+      this->get_name(),
+      server_uri_.c_str(),
+      client_id_.c_str(),
+      qos_,
+      receiver_topics.size());
 
     RCLCPP_INFO(this->get_logger(),
       "JudgeReceiver initialized (24 message types).\n"
@@ -210,6 +223,7 @@ private:
 
     mqtt::connect_options opts;
     opts.set_clean_session(true);
+    std::string subscribing_topic;
 
     try {
       if (!mqtt_client_->is_connected()) {
@@ -218,44 +232,24 @@ private:
         RCLCPP_INFO(this->get_logger(), "MQTT connected.");
       }
 
-      // 订阅所有24个topic
-      const std::vector<std::string> all_topics = {
-        "GameStatus",
-        "GlobalUnitStatus",
-        "GlobalLogisticsStatus",
-        "GlobalSpecialMechanism",
-        "Event",
-        "RobotInjuryStat",
-        "RobotRespawnStatus",
-        "RobotStaticStatus",
-        "RobotDynamicStatus",
-        "RobotModuleStatus",
-        "RobotPosition",
-        "Buff",
-        "PenaltyInfo",
-        "RobotPathPlanInfo",
-        "RaderInfoToClient",
-        "CustomByteBlock",
-        "TechCoreMotionStateSync",
-        "RobotPerformanceSelectionSync",
-        "DeployModeStatusSync",
-        "RuneStatusSync",
-        "SentinelStatusSync",
-        "DartSelectTargetStatusSync",
-        "GuardCtrlResult",
-        "AirSupportStatusSync"
-      };
+      const auto all_topics = get_receiver_topics();
+      RCLCPP_INFO(this->get_logger(), "Start subscribing MQTT topics: count=%zu", all_topics.size());
 
       for (const auto& t : all_topics) {
+        subscribing_topic = t;
         mqtt_client_->subscribe(t, qos_)->wait();
       }
       subscribed_ = true;
 
-      RCLCPP_INFO(this->get_logger(), "MQTT subscribed OK: 24 message topics");
+      RCLCPP_INFO(this->get_logger(), "MQTT subscribe completed: count=%zu", all_topics.size());
     }
     catch (const mqtt::exception &e) {
       subscribed_ = false;
-      RCLCPP_WARN(this->get_logger(), "MQTT connect/subscribe failed: %s", e.what());
+      RCLCPP_WARN(
+        this->get_logger(),
+        "MQTT connect/subscribe failed (topic=%s): %s",
+        (subscribing_topic.empty() ? "<none>" : subscribing_topic.c_str()),
+        e.what());
     }
   }
 
@@ -313,7 +307,59 @@ private:
       handle_guard_ctrl_result(payload);
     } else if (topic == "AirSupportStatusSync") {
       handle_air_support_status(payload);
+    } else {
+      RCLCPP_DEBUG(this->get_logger(), "Unknown topic received: %s", topic.c_str());
     }
+  }
+
+  std::vector<std::string> get_receiver_topics() const
+  {
+    std::vector<std::string> topics = topic_registry_.get_subscribe_topics();
+
+    // 保留当前 receiver 的完整 24 topic 订阅能力，逐步迁移到 registry。
+    const std::vector<std::string> legacy_topics = {
+      "GameStatus",
+      "GlobalUnitStatus",
+      "GlobalLogisticsStatus",
+      "GlobalSpecialMechanism",
+      "Event",
+      "RobotInjuryStat",
+      "RobotRespawnStatus",
+      "RobotStaticStatus",
+      "RobotDynamicStatus",
+      "RobotModuleStatus",
+      "RobotPosition",
+      "Buff",
+      "PenaltyInfo",
+      "RobotPathPlanInfo",
+      "RaderInfoToClient",
+      "CustomByteBlock",
+      "TechCoreMotionStateSync",
+      "RobotPerformanceSelectionSync",
+      "DeployModeStatusSync",
+      "RuneStatusSync",
+      "SentinelStatusSync",
+      "DartSelectTargetStatusSync",
+      "GuardCtrlResult",
+      "AirSupportStatusSync"
+    };
+
+    topics.insert(topics.end(), legacy_topics.begin(), legacy_topics.end());
+
+    std::vector<std::string> deduped;
+    deduped.reserve(topics.size());
+    std::unordered_set<std::string> seen;
+    for (const auto & t : topics) {
+      if (seen.insert(t).second) {
+        deduped.push_back(t);
+      }
+    }
+    return deduped;
+  }
+
+  void log_core_state_snapshot()
+  {
+    RCLCPP_INFO(this->get_logger(), "%s", state_store_.debug_summary().c_str());
   }
 
   #define PUBLISH_JSON(publisher, json_content) \
@@ -329,6 +375,13 @@ private:
     if (!s.ParseFromString(payload)) {
       RCLCPP_ERROR(this->get_logger(), "Parse GameStatus failed (%zu bytes)", payload.size());
       return;
+    }
+
+    state_store_.update_game_status(s);
+    RCLCPP_DEBUG(this->get_logger(), "StateStore updated: GameStatus");
+    if (!has_logged_first_game_status_snapshot_) {
+      log_core_state_snapshot();
+      has_logged_first_game_status_snapshot_ = true;
     }
 
     std::string json = R"({"current_round":)" + std::to_string(s.current_round()) +
@@ -349,6 +402,9 @@ private:
       RCLCPP_ERROR(this->get_logger(), "Parse GlobalUnitStatus failed");
       return;
     }
+
+    state_store_.update_global_unit_status(s);
+    RCLCPP_DEBUG(this->get_logger(), "StateStore updated: GlobalUnitStatus");
 
     std::string json = R"({"base_health":)" + std::to_string(s.base_health()) +
       R"(,"base_status":)" + std::to_string(s.base_status()) +
@@ -496,6 +552,9 @@ private:
       RCLCPP_ERROR(this->get_logger(), "Parse RobotDynamicStatus failed");
       return;
     }
+
+    state_store_.update_robot_dynamic_status(s);
+    RCLCPP_DEBUG(this->get_logger(), "StateStore updated: RobotDynamicStatus");
 
     std::string json = R"({"current_health":)" + std::to_string(s.current_health()) +
       R"(,"current_heat":)" + std::to_string(s.current_heat()) +
@@ -730,6 +789,10 @@ private:
       return;
     }
 
+    state_store_.update_guard_ctrl_result(g);
+    RCLCPP_INFO(this->get_logger(), "StateStore updated: GuardCtrlResult");
+    log_core_state_snapshot();
+
     std::string json = R"({"command_id":)" + std::to_string(g.command_id()) +
       R"(,"result_code":)" + std::to_string(g.result_code()) + "}";
     PUBLISH_JSON(pub_guard_ctrl_result_, json);
@@ -764,6 +827,9 @@ private:
   std::shared_ptr<MqttCallback> mqtt_cb_;
   std::mutex mqtt_mtx_;
   bool subscribed_{false};
+  rm_client::TopicRegistry topic_registry_;
+  rm_client::StateStore state_store_;
+  bool has_logged_first_game_status_snapshot_{false};
 
   // ROS publishers (24 total)
   rclcpp::TimerBase::SharedPtr reconnect_timer_;

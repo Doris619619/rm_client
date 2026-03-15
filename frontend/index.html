@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RoboMaster 比赛状态面板</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <h1>RoboMaster 比赛状态面板</h1>
+      <div id="bridgeStatus" class="pill offline">BRIDGE OFFLINE</div>
+    </header>
+
+    <main class="grid">
+      <section class="panel" aria-labelledby="match-title">
+        <h2 id="match-title">A. 比赛状态区</h2>
+        <div class="kv-grid">
+          <div class="kv">
+            <span class="k">当前阶段</span>
+            <span id="currentStage" class="v big">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">阶段已过时间</span>
+            <span id="elapsedSec" class="v big">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">阶段剩余时间</span>
+            <span id="countdownSec" class="v big">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">局号 / 总局数</span>
+            <span id="roundInfo" class="v big">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">系统连接状态</span>
+            <span id="systemStatus" class="v">--</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="robot-title">
+        <h2 id="robot-title">B. 机器人状态区</h2>
+        <div class="kv-grid">
+          <div class="kv">
+            <span class="k">当前血量</span>
+            <span id="health" class="v huge">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">剩余弹量</span>
+            <span id="ammo" class="v huge">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">可远程补弹</span>
+            <span id="canAmmo" class="v">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">可远程回血</span>
+            <span id="canHeal" class="v">--</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="global-title">
+        <h2 id="global-title">C. 全局状态区</h2>
+        <pre id="globalStatus" class="json-box">暂无数据</pre>
+      </section>
+
+      <section class="panel" aria-labelledby="feedback-title">
+        <h2 id="feedback-title">D. 指令反馈区</h2>
+        <div class="kv-grid">
+          <div class="kv">
+            <span class="k">最近 command_id</span>
+            <span id="cmdId" class="v big">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">最近 result_code</span>
+            <span id="resultCode" class="v big">--</span>
+          </div>
+          <div class="kv">
+            <span class="k">最近回执时间</span>
+            <span id="ackTime" class="v">--</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -14,6 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # Paho MQTT C++
 find_library(PAHO_MQTTPP_LIB paho-mqttpp3)
@@ -94,11 +95,22 @@ target_link_libraries(mock_custom_image_pub
 	${PAHO_MQTT_C_LIB}
 )
 
+add_executable(camera_custom_image_pub
+	src/camera_custom_image_pub.cpp
+)
+
+target_include_directories(camera_custom_image_pub PRIVATE ${COMMON_INCLUDE_DIRS})
+ament_target_dependencies(camera_custom_image_pub rclcpp std_msgs)
+target_link_libraries(camera_custom_image_pub
+	${OpenCV_LIBRARIES}
+)
+
 install(TARGETS
 	semi_auto_keyboard
 	judge_sender
 	judge_receiver
 	mock_custom_image_pub
+	camera_custom_image_pub
 	DESTINATION lib/${PROJECT_NAME}
 )
 

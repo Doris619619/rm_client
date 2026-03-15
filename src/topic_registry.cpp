@@ -43,6 +43,187 @@ TopicRegistry::TopicRegistry()
     StoreKind::SentinelStore
   });
 
+  // 以下为 judge_receiver.cpp 中 legacy 订阅的其余下行 topic
+  register_topic({
+    "GlobalLogisticsStatus",
+    "GlobalLogisticsStatus",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::GlobalStore
+  });
+
+  register_topic({
+    "GlobalSpecialMechanism",
+    "GlobalSpecialMechanism",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::GlobalStore
+  });
+
+  register_topic({
+    "Event",
+    "Event",
+    TopicDirection::ServerToClient,
+    0.0,
+    false,
+    StoreKind::MatchStore
+  });
+
+  register_topic({
+    "RobotInjuryStat",
+    "RobotInjuryStat",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "RobotRespawnStatus",
+    "RobotRespawnStatus",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "RobotStaticStatus",
+    "RobotStaticStatus",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "RobotModuleStatus",
+    "RobotModuleStatus",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "RobotPosition",
+    "RobotPosition",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "Buff",
+    "Buff",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "PenaltyInfo",
+    "PenaltyInfo",
+    TopicDirection::ServerToClient,
+    0.0,
+    false,
+    StoreKind::MatchStore
+  });
+
+  register_topic({
+    "RobotPathPlanInfo",
+    "RobotPathPlanInfo",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::SentinelStore
+  });
+
+  register_topic({
+    "RaderInfoToClient",
+    "RaderInfoToClient",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::GlobalStore
+  });
+
+  register_topic({
+    "CustomByteBlock",
+    "CustomByteBlock",
+    TopicDirection::RobotToClient,
+    50.0,
+    false,
+    StoreKind::MatchStore
+  });
+
+  register_topic({
+    "TechCoreMotionStateSync",
+    "TechCoreMotionStateSync",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::MatchStore
+  });
+
+  register_topic({
+    "RobotPerformanceSelectionSync",
+    "RobotPerformanceSelectionSync",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "DeployModeStatusSync",
+    "DeployModeStatusSync",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::RobotStore
+  });
+
+  register_topic({
+    "RuneStatusSync",
+    "RuneStatusSync",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::MatchStore
+  });
+
+  register_topic({
+    "SentinelStatusSync",
+    "SentinelStatusSync",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::SentinelStore
+  });
+
+  register_topic({
+    "DartSelectTargetStatusSync",
+    "DartSelectTargetStatusSync",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::SentinelStore
+  });
+
+  register_topic({
+    "AirSupportStatusSync",
+    "AirSupportStatusSync",
+    TopicDirection::ServerToClient,
+    1.0,
+    false,
+    StoreKind::MatchStore
+  });
+
   // 客户端 -> 服务器
   register_topic({
     "GuardCtrlCommand",

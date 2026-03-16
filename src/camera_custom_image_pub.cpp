@@ -106,8 +106,8 @@ private:
   static constexpr uint8_t kMagicM = 0x4D;
   static constexpr uint8_t kVersion = 0x01;
   static constexpr uint8_t kMsgTypeImage = 0x01;
-  static constexpr uint8_t kWidth = 48;
-  static constexpr uint8_t kHeight = 48;
+  static constexpr uint8_t kWidth = 96;
+  static constexpr uint8_t kHeight = 96;
   static constexpr uint8_t kEncodingGray8 = 0x01;
   static constexpr uint8_t kReserved = 0x00;
   static constexpr std::size_t kHeaderBytes = 12;

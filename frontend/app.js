@@ -98,7 +98,7 @@ function renderAuxImage(customImage) {
   if (!customImage || typeof customImage !== "object") {
     clearAuxCanvas();
     setAuxState("NO DATA", "no-data");
-    metaEl.textContent = "48x48 GRAY / frame #--";
+    metaEl.textContent = "96x96 GRAY / frame #--";
     return;
   }
 

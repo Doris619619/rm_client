@@ -8,7 +8,7 @@ Bridge RoboMaster judge system (MQTT + Protobuf) to ROS2 topics, provide HTTP JS
 
 
 
-# rm_client
+# 简介
 
 RoboMaster 客户端 ROS2 包。该仓库实现了以下核心能力：
 

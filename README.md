@@ -1,3 +1,6 @@
+# rm-client
+# Bridge RoboMaster judge system (MQTT + Protobuf) to ROS2 topics, provide HTTP JSON state API and a static frontend HUD.
+
 # rm_client
 
 RoboMaster 客户端 ROS2 包。该仓库实现了以下核心能力：

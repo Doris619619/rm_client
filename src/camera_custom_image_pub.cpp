@@ -20,6 +20,7 @@ public:
     camera_index_(this->declare_parameter<int>("camera_index", 0)),
     camera_serial_(this->declare_parameter<std::string>("camera_serial", "")),
     publish_fps_(this->declare_parameter<double>("publish_fps", 5.0)),
+    roi_size_(this->declare_parameter<int>("roi_size", 480)),
     chunk_payload_size_(this->declare_parameter<int>("chunk_payload_size", 200)),
     grab_timeout_ms_(this->declare_parameter<int>("grab_timeout_ms", 1000)),
     exposure_time_(this->declare_parameter<double>("exposure_time", -1.0)),
@@ -30,6 +31,11 @@ public:
     if (publish_fps_ <= 0.0) {
       RCLCPP_WARN(this->get_logger(), "publish_fps<=0 is invalid, fallback to 5.0");
       publish_fps_ = 5.0;
+    }
+
+    if (roi_size_ < 0) {
+      RCLCPP_WARN(this->get_logger(), "roi_size<0 is invalid, fallback to 0(full frame)");
+      roi_size_ = 0;
     }
 
     if (chunk_payload_size_ <= 0) {
@@ -70,12 +76,13 @@ public:
 
     RCLCPP_INFO(
       this->get_logger(),
-      "camera_custom_image_pub config: camera_index=%d camera_serial='%s' fps=%.2f image=%dx%d chunk_payload_size=%d chunks=%zu grab_timeout_ms=%d exposure_time=%.2f",
+      "camera_custom_image_pub config: camera_index=%d camera_serial='%s' fps=%.2f image=%dx%d roi_size=%d chunk_payload_size=%d chunks=%zu grab_timeout_ms=%d exposure_time=%.2f",
       camera_index_,
       camera_serial_.c_str(),
       publish_fps_,
       static_cast<int>(kWidth),
       static_cast<int>(kHeight),
+      roi_size_,
       chunk_payload_size_,
       total_chunks,
       grab_timeout_ms_,
@@ -526,9 +533,23 @@ private:
       return false;
     }
 
+    cv::Mat roi_or_full = gray;
+    const int min_side = std::min(gray.cols, gray.rows);
+    int crop_side = min_side;
+    if (roi_size_ > 0) {
+      crop_side = std::min(roi_size_, min_side);
+    }
+
+    if (crop_side > 0 && crop_side < min_side) {
+      const int x0 = (gray.cols - crop_side) / 2;
+      const int y0 = (gray.rows - crop_side) / 2;
+      cv::Rect center_roi(x0, y0, crop_side, crop_side);
+      roi_or_full = gray(center_roi);
+    }
+
     cv::Mat resized;
     cv::resize(
-      gray,
+      roi_or_full,
       resized,
       cv::Size(static_cast<int>(kWidth), static_cast<int>(kHeight)),
       0.0,
@@ -617,6 +638,7 @@ private:
   int camera_index_;
   std::string camera_serial_;
   double publish_fps_;
+  int roi_size_;
   int chunk_payload_size_;
   int grab_timeout_ms_;
   double exposure_time_;

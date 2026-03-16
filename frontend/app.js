@@ -9,6 +9,12 @@ const FRESHNESS_THRESHOLDS = {
   ack: 5,
 };
 
+const auxFpsTracker = {
+  lastFrameId: null,
+  lastUpdatedMs: null,
+  fps: null,
+};
+
 function byId(id) {
   return document.getElementById(id);
 }
@@ -88,9 +94,14 @@ function setAuxState(text, className) {
 function clearAuxCanvas() {
   const canvas = byId("auxImageCanvas");
   const ctx = canvas.getContext("2d");
-  canvas.width = 48;
-  canvas.height = 48;
+  canvas.width = 160;
+  canvas.height = 120;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function setAuxFpsText(text) {
+  const el = byId("auxImageFps");
+  el.textContent = text;
 }
 
 function renderAuxImage(customImage) {
@@ -98,15 +109,49 @@ function renderAuxImage(customImage) {
   if (!customImage || typeof customImage !== "object") {
     clearAuxCanvas();
     setAuxState("NO DATA", "no-data");
-    metaEl.textContent = "48x48 GRAY / frame #--";
+    metaEl.textContent = "160x120 GRAY / frame #--";
+    auxFpsTracker.lastFrameId = null;
+    auxFpsTracker.lastUpdatedMs = null;
+    auxFpsTracker.fps = null;
+    setAuxFpsText("源端频率: --");
     return;
   }
 
-  const width = toNumber(customImage.width) || 48;
-  const height = toNumber(customImage.height) || 48;
+  const width = toNumber(customImage.width) || 160;
+  const height = toNumber(customImage.height) || 120;
   const frameId = show(customImage.frame_id);
   const encoding = String(customImage.encoding || "GRAY8");
   const bytes = decodeBase64ToBytes(customImage.data_base64);
+  const frameIdNum = toNumber(customImage.frame_id);
+  const updatedMs = parseIsoTime(customImage.updated_at);
+
+  if (
+    frameIdNum !== null &&
+    updatedMs !== null &&
+    auxFpsTracker.lastFrameId !== null &&
+    auxFpsTracker.lastUpdatedMs !== null
+  ) {
+    const frameDelta = frameIdNum - auxFpsTracker.lastFrameId;
+    const timeDeltaSec = (updatedMs - auxFpsTracker.lastUpdatedMs) / 1000;
+    if (frameDelta > 0 && timeDeltaSec > 0) {
+      const fpsRaw = frameDelta / timeDeltaSec;
+      // Source rate estimate from bridge-updated frame_id/updated_at.
+      auxFpsTracker.fps = auxFpsTracker.fps === null
+        ? fpsRaw
+        : auxFpsTracker.fps * 0.6 + fpsRaw * 0.4;
+    }
+  }
+
+  if (frameIdNum !== null && updatedMs !== null) {
+    auxFpsTracker.lastFrameId = frameIdNum;
+    auxFpsTracker.lastUpdatedMs = updatedMs;
+  }
+
+  if (auxFpsTracker.fps === null) {
+    setAuxFpsText("源端频率: --");
+  } else {
+    setAuxFpsText(`源端频率: ${auxFpsTracker.fps.toFixed(1)} Hz`);
+  }
 
   metaEl.textContent = `${width}x${height} ${encoding} / frame #${frameId}`;
   if (!bytes) {

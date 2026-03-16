@@ -19,8 +19,8 @@ CUSTOM_MAGIC_1 = 0x4D
 CUSTOM_VERSION = 0x01
 CUSTOM_MSG_TYPE_IMAGE = 0x01
 CUSTOM_ENCODING_GRAY8 = 0x01
-CUSTOM_IMAGE_WIDTH = 48
-CUSTOM_IMAGE_HEIGHT = 48
+CUSTOM_IMAGE_WIDTH = 160
+CUSTOM_IMAGE_HEIGHT = 120
 CUSTOM_FRAME_TIMEOUT_SEC = 1.0
 
 
@@ -196,7 +196,7 @@ class StateBridgeNode(Node):
             UInt8MultiArray,
             "/judge/custom_byte_block",
             self._on_custom_block,
-            10,
+            200,
         )
 
     def _make_callback(self, topic_name: str, state_key: str, meta_time_field: str):
@@ -268,14 +268,17 @@ def main() -> None:
 
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
         pass
     finally:
         shared_state.set_bridge_alive(False)
         http_server.shutdown()
         http_server.server_close()
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

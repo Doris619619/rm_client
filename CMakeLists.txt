@@ -16,6 +16,19 @@ find_package(geometry_msgs REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(OpenCV REQUIRED)
 
+set(MVS_ROOT_DIR /opt/MVS)
+set(MVS_INCLUDE_DIR ${MVS_ROOT_DIR}/include)
+set(MVS_LIB_DIR ${MVS_ROOT_DIR}/lib/64)
+
+find_library(MVS_CAMERA_CONTROL_LIB
+	NAMES MvCameraControl
+	PATHS ${MVS_LIB_DIR}
+	NO_DEFAULT_PATH
+)
+if(NOT MVS_CAMERA_CONTROL_LIB)
+	message(FATAL_ERROR "Could not find MVS library: libMvCameraControl.so under ${MVS_LIB_DIR}")
+endif()
+
 # Paho MQTT C++
 find_library(PAHO_MQTTPP_LIB paho-mqttpp3)
 if(NOT PAHO_MQTTPP_LIB)
@@ -103,7 +116,12 @@ target_include_directories(camera_custom_image_pub PRIVATE ${COMMON_INCLUDE_DIRS
 ament_target_dependencies(camera_custom_image_pub rclcpp std_msgs)
 target_link_libraries(camera_custom_image_pub
 	${OpenCV_LIBRARIES}
+	${MVS_CAMERA_CONTROL_LIB}
+	dl
+	pthread
 )
+target_include_directories(camera_custom_image_pub PRIVATE ${MVS_INCLUDE_DIR})
+target_link_directories(camera_custom_image_pub PRIVATE ${MVS_LIB_DIR})
 
 install(TARGETS
 	semi_auto_keyboard

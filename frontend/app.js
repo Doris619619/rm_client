@@ -1,7 +1,6 @@
 const API_URL = "http://127.0.0.1:8000/api/state";
 const POLL_MS = 400;
 const AUX_IMAGE_STALE_SEC = 1.2;
-const AUX_FPS_MAX_HZ = 50;
 
 const FRESHNESS_THRESHOLDS = {
   game: 2,
@@ -114,7 +113,7 @@ function renderAuxImage(customImage) {
     auxFpsTracker.lastFrameId = null;
     auxFpsTracker.lastUpdatedMs = null;
     auxFpsTracker.fps = null;
-    setAuxFpsText("FPS: --");
+    setAuxFpsText("源端频率: --");
     return;
   }
 
@@ -136,10 +135,10 @@ function renderAuxImage(customImage) {
     const timeDeltaSec = (updatedMs - auxFpsTracker.lastUpdatedMs) / 1000;
     if (frameDelta > 0 && timeDeltaSec > 0) {
       const fpsRaw = frameDelta / timeDeltaSec;
-      const fpsClamped = Math.min(AUX_FPS_MAX_HZ, Math.max(0, fpsRaw));
+      // Source rate estimate from bridge-updated frame_id/updated_at.
       auxFpsTracker.fps = auxFpsTracker.fps === null
-        ? fpsClamped
-        : auxFpsTracker.fps * 0.6 + fpsClamped * 0.4;
+        ? fpsRaw
+        : auxFpsTracker.fps * 0.6 + fpsRaw * 0.4;
     }
   }
 
@@ -149,9 +148,9 @@ function renderAuxImage(customImage) {
   }
 
   if (auxFpsTracker.fps === null) {
-    setAuxFpsText("FPS: --");
+    setAuxFpsText("源端频率: --");
   } else {
-    setAuxFpsText(`FPS: ${auxFpsTracker.fps.toFixed(1)} Hz`);
+    setAuxFpsText(`源端频率: ${auxFpsTracker.fps.toFixed(1)} Hz`);
   }
 
   metaEl.textContent = `${width}x${height} ${encoding} / frame #${frameId}`;

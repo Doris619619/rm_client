@@ -34,6 +34,10 @@ public:
       RCLCPP_WARN(this->get_logger(), "publish_fps<=0 is invalid, fallback to 5.0");
       publish_fps_ = 5.0;
     }
+    if (publish_fps_ > 50.0) {
+      RCLCPP_WARN(this->get_logger(), "publish_fps=%.2f exceeds 50Hz, clamp to 50.0", publish_fps_);
+      publish_fps_ = 50.0;
+    }
 
     if (roi_size_ < 0) {
       RCLCPP_WARN(this->get_logger(), "roi_size<0 is invalid, fallback to 0(full frame)");

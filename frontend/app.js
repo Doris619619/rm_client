@@ -1,12 +1,19 @@
 const API_URL = "http://127.0.0.1:8000/api/state";
 const POLL_MS = 400;
 const AUX_IMAGE_STALE_SEC = 1.2;
+const AUX_FPS_MAX_HZ = 50;
 
 const FRESHNESS_THRESHOLDS = {
   game: 2,
   global: 3,
   robot: 1,
   ack: 5,
+};
+
+const auxFpsTracker = {
+  lastFrameId: null,
+  lastUpdatedMs: null,
+  fps: null,
 };
 
 function byId(id) {
@@ -93,12 +100,21 @@ function clearAuxCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function setAuxFpsText(text) {
+  const el = byId("auxImageFps");
+  el.textContent = text;
+}
+
 function renderAuxImage(customImage) {
   const metaEl = byId("auxImageMeta");
   if (!customImage || typeof customImage !== "object") {
     clearAuxCanvas();
     setAuxState("NO DATA", "no-data");
     metaEl.textContent = "160x120 GRAY / frame #--";
+    auxFpsTracker.lastFrameId = null;
+    auxFpsTracker.lastUpdatedMs = null;
+    auxFpsTracker.fps = null;
+    setAuxFpsText("FPS: --");
     return;
   }
 
@@ -107,6 +123,36 @@ function renderAuxImage(customImage) {
   const frameId = show(customImage.frame_id);
   const encoding = String(customImage.encoding || "GRAY8");
   const bytes = decodeBase64ToBytes(customImage.data_base64);
+  const frameIdNum = toNumber(customImage.frame_id);
+  const updatedMs = parseIsoTime(customImage.updated_at);
+
+  if (
+    frameIdNum !== null &&
+    updatedMs !== null &&
+    auxFpsTracker.lastFrameId !== null &&
+    auxFpsTracker.lastUpdatedMs !== null
+  ) {
+    const frameDelta = frameIdNum - auxFpsTracker.lastFrameId;
+    const timeDeltaSec = (updatedMs - auxFpsTracker.lastUpdatedMs) / 1000;
+    if (frameDelta > 0 && timeDeltaSec > 0) {
+      const fpsRaw = frameDelta / timeDeltaSec;
+      const fpsClamped = Math.min(AUX_FPS_MAX_HZ, Math.max(0, fpsRaw));
+      auxFpsTracker.fps = auxFpsTracker.fps === null
+        ? fpsClamped
+        : auxFpsTracker.fps * 0.6 + fpsClamped * 0.4;
+    }
+  }
+
+  if (frameIdNum !== null && updatedMs !== null) {
+    auxFpsTracker.lastFrameId = frameIdNum;
+    auxFpsTracker.lastUpdatedMs = updatedMs;
+  }
+
+  if (auxFpsTracker.fps === null) {
+    setAuxFpsText("FPS: --");
+  } else {
+    setAuxFpsText(`FPS: ${auxFpsTracker.fps.toFixed(1)} Hz`);
+  }
 
   metaEl.textContent = `${width}x${height} ${encoding} / frame #${frameId}`;
   if (!bytes) {

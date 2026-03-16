@@ -196,7 +196,7 @@ class StateBridgeNode(Node):
             UInt8MultiArray,
             "/judge/custom_byte_block",
             self._on_custom_block,
-            10,
+            200,
         )
 
     def _make_callback(self, topic_name: str, state_key: str, meta_time_field: str):

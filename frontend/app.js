@@ -88,8 +88,8 @@ function setAuxState(text, className) {
 function clearAuxCanvas() {
   const canvas = byId("auxImageCanvas");
   const ctx = canvas.getContext("2d");
-  canvas.width = 48;
-  canvas.height = 48;
+  canvas.width = 160;
+  canvas.height = 120;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -98,12 +98,12 @@ function renderAuxImage(customImage) {
   if (!customImage || typeof customImage !== "object") {
     clearAuxCanvas();
     setAuxState("NO DATA", "no-data");
-    metaEl.textContent = "96x96 GRAY / frame #--";
+    metaEl.textContent = "160x120 GRAY / frame #--";
     return;
   }
 
-  const width = toNumber(customImage.width) || 48;
-  const height = toNumber(customImage.height) || 48;
+  const width = toNumber(customImage.width) || 160;
+  const height = toNumber(customImage.height) || 120;
   const frameId = show(customImage.frame_id);
   const encoding = String(customImage.encoding || "GRAY8");
   const bytes = decodeBase64ToBytes(customImage.data_base64);

@@ -21,6 +21,8 @@ public:
     camera_serial_(this->declare_parameter<std::string>("camera_serial", "")),
     publish_fps_(this->declare_parameter<double>("publish_fps", 5.0)),
     roi_size_(this->declare_parameter<int>("roi_size", 480)),
+    enable_clahe_(this->declare_parameter<bool>("enable_clahe", true)),
+    clahe_clip_limit_(this->declare_parameter<double>("clahe_clip_limit", 3.0)),
     chunk_payload_size_(this->declare_parameter<int>("chunk_payload_size", 200)),
     grab_timeout_ms_(this->declare_parameter<int>("grab_timeout_ms", 1000)),
     exposure_time_(this->declare_parameter<double>("exposure_time", -1.0)),
@@ -36,6 +38,11 @@ public:
     if (roi_size_ < 0) {
       RCLCPP_WARN(this->get_logger(), "roi_size<0 is invalid, fallback to 0(full frame)");
       roi_size_ = 0;
+    }
+
+    if (clahe_clip_limit_ <= 0.0) {
+      RCLCPP_WARN(this->get_logger(), "clahe_clip_limit<=0 is invalid, fallback to 3.0");
+      clahe_clip_limit_ = 3.0;
     }
 
     if (chunk_payload_size_ <= 0) {
@@ -76,19 +83,21 @@ public:
 
     RCLCPP_INFO(
       this->get_logger(),
-      "camera_custom_image_pub config: camera_index=%d camera_serial='%s' fps=%.2f image=%dx%d roi_size=%d chunk_payload_size=%d chunks=%zu grab_timeout_ms=%d exposure_time=%.2f",
+      "camera_custom_image_pub config: camera_index=%d camera_serial='%s' fps=%.2f image=%dx%d roi_size=%d enable_clahe=%s clahe_clip_limit=%.2f chunk_payload_size=%d chunks=%zu grab_timeout_ms=%d exposure_time=%.2f",
       camera_index_,
       camera_serial_.c_str(),
       publish_fps_,
       static_cast<int>(kWidth),
       static_cast<int>(kHeight),
       roi_size_,
+      enable_clahe_ ? "true" : "false",
+      clahe_clip_limit_,
       chunk_payload_size_,
       total_chunks,
       grab_timeout_ms_,
       exposure_time_);
 
-    RCLCPP_INFO(this->get_logger(), "output image protocol fixed to 48x48 GRAY8 on /judge/custom_byte_block");
+    RCLCPP_INFO(this->get_logger(), "output image protocol fixed to 160x120 GRAY8 on /judge/custom_byte_block");
 
     const auto period = std::chrono::duration<double>(1.0 / publish_fps_);
     timer_ = this->create_wall_timer(
@@ -106,8 +115,8 @@ private:
   static constexpr uint8_t kMagicM = 0x4D;
   static constexpr uint8_t kVersion = 0x01;
   static constexpr uint8_t kMsgTypeImage = 0x01;
-  static constexpr uint8_t kWidth = 96;
-  static constexpr uint8_t kHeight = 96;
+  static constexpr uint8_t kWidth = 160;
+  static constexpr uint8_t kHeight = 120;
   static constexpr uint8_t kEncodingGray8 = 0x01;
   static constexpr uint8_t kReserved = 0x00;
   static constexpr std::size_t kHeaderBytes = 12;
@@ -479,7 +488,7 @@ private:
     }
   }
 
-  bool read_processed_frame(std::vector<uint8_t> &gray_48x48)
+  bool read_processed_frame(std::vector<uint8_t> &gray_out)
   {
     if (camera_handle_ == nullptr || !is_opened_ || !is_grabbing_) {
       RCLCPP_WARN(this->get_logger(), "Camera is not ready when grabbing frame.");
@@ -556,11 +565,18 @@ private:
       0.0,
       cv::INTER_AREA);
 
+    if (enable_clahe_) {
+      auto clahe = cv::createCLAHE(clahe_clip_limit_, cv::Size(8, 8));
+      cv::Mat enhanced;
+      clahe->apply(resized, enhanced);
+      resized = enhanced;
+    }
+
     if (!resized.isContinuous()) {
       resized = resized.clone();
     }
 
-    gray_48x48.assign(resized.data, resized.data + static_cast<std::ptrdiff_t>(kImageBytes));
+    gray_out.assign(resized.data, resized.data + static_cast<std::ptrdiff_t>(kImageBytes));
     return true;
   }
 
@@ -639,6 +655,8 @@ private:
   std::string camera_serial_;
   double publish_fps_;
   int roi_size_;
+  bool enable_clahe_;
+  double clahe_clip_limit_;
   int chunk_payload_size_;
   int grab_timeout_ms_;
   double exposure_time_;

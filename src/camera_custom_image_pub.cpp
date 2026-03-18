@@ -19,7 +19,7 @@ public:
   : Node("camera_custom_image_pub"),
     camera_index_(this->declare_parameter<int>("camera_index", 0)),
     camera_serial_(this->declare_parameter<std::string>("camera_serial", "")),
-    publish_fps_(this->declare_parameter<double>("publish_fps", 5.0)),
+    publish_fps_(this->declare_parameter<double>("publish_fps", 49.0)),
     roi_size_(this->declare_parameter<int>("roi_size", 480)),
     enable_clahe_(this->declare_parameter<bool>("enable_clahe", true)),
     clahe_clip_limit_(this->declare_parameter<double>("clahe_clip_limit", 3.0)),
@@ -31,8 +31,8 @@ public:
     this->declare_parameter<int>("device_index", -1);
 
     if (publish_fps_ <= 0.0) {
-      RCLCPP_WARN(this->get_logger(), "publish_fps<=0 is invalid, fallback to 5.0");
-      publish_fps_ = 5.0;
+      RCLCPP_WARN(this->get_logger(), "publish_fps<=0 is invalid, fallback to 49.0");
+      publish_fps_ = 49.0;
     }
     if (publish_fps_ > 50.0) {
       RCLCPP_WARN(this->get_logger(), "publish_fps=%.2f exceeds 50Hz, clamp to 50.0", publish_fps_);

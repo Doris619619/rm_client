@@ -393,6 +393,17 @@ private:
       } else {
         RCLCPP_INFO(this->get_logger(), "ExposureTime set to %.2f us", exposure_time_);
       }
+    } else {
+      // Restore camera-side auto exposure when manual exposure is not requested.
+      const int auto_ret = MV_CC_SetEnumValue(camera_handle_, "ExposureAuto", 2);
+      if (auto_ret != MV_OK) {
+        RCLCPP_WARN(
+          this->get_logger(),
+          "MV_CC_SetEnumValue(ExposureAuto=Continuous) failed: %s",
+          as_hex(static_cast<uint32_t>(auto_ret)).c_str());
+      } else {
+        RCLCPP_INFO(this->get_logger(), "ExposureAuto set to Continuous");
+      }
     }
 
     MVCC_INTVALUE payload_size_info;

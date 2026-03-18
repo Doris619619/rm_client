@@ -29,7 +29,7 @@ public:
     exposure_time_(this->declare_parameter<double>("exposure_time", -1.0)),
     frame_id_(0)
   {
-    this->declare_parameter<int>("device_index", -1);
+    this->declare_parameter<int>("device_index", -10);
 
     if (publish_fps_ <= 0.0) {
       RCLCPP_WARN(this->get_logger(), "publish_fps<=0 is invalid, fallback to 49.0");

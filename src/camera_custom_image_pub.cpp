@@ -20,10 +20,11 @@ public:
     camera_index_(this->declare_parameter<int>("camera_index", 0)),
     camera_serial_(this->declare_parameter<std::string>("camera_serial", "")),
     publish_fps_(this->declare_parameter<double>("publish_fps", 49.0)),
+    acquisition_fps_(this->declare_parameter<double>("acquisition_fps", -1.0)),
     roi_size_(this->declare_parameter<int>("roi_size", 480)),
     enable_clahe_(this->declare_parameter<bool>("enable_clahe", true)),
     clahe_clip_limit_(this->declare_parameter<double>("clahe_clip_limit", 3.0)),
-    chunk_payload_size_(this->declare_parameter<int>("chunk_payload_size", 200)),
+    chunk_payload_size_(this->declare_parameter<int>("chunk_payload_size", 960)),
     grab_timeout_ms_(this->declare_parameter<int>("grab_timeout_ms", 1000)),
     exposure_time_(this->declare_parameter<double>("exposure_time", -1.0)),
     frame_id_(0)
@@ -50,8 +51,8 @@ public:
     }
 
     if (chunk_payload_size_ <= 0) {
-      RCLCPP_WARN(this->get_logger(), "chunk_payload_size<=0 is invalid, fallback to 200");
-      chunk_payload_size_ = 200;
+      RCLCPP_WARN(this->get_logger(), "chunk_payload_size<=0 is invalid, fallback to 960");
+      chunk_payload_size_ = 960;
     }
 
     // total_chunks is one byte, so payload size cannot be too small.
@@ -87,10 +88,11 @@ public:
 
     RCLCPP_INFO(
       this->get_logger(),
-      "camera_custom_image_pub config: camera_index=%d camera_serial='%s' fps=%.2f image=%dx%d roi_size=%d enable_clahe=%s clahe_clip_limit=%.2f chunk_payload_size=%d chunks=%zu grab_timeout_ms=%d exposure_time=%.2f",
+      "camera_custom_image_pub config: camera_index=%d camera_serial='%s' fps=%.2f acquisition_fps=%.2f image=%dx%d roi_size=%d enable_clahe=%s clahe_clip_limit=%.2f chunk_payload_size=%d chunks=%zu grab_timeout_ms=%d exposure_time=%.2f",
       camera_index_,
       camera_serial_.c_str(),
       publish_fps_,
+      acquisition_fps_,
       static_cast<int>(kWidth),
       static_cast<int>(kHeight),
       roi_size_,
@@ -100,6 +102,10 @@ public:
       total_chunks,
       grab_timeout_ms_,
       exposure_time_);
+
+    if (enable_clahe_) {
+      clahe_ = cv::createCLAHE(clahe_clip_limit_, cv::Size(8, 8));
+    }
 
     RCLCPP_INFO(this->get_logger(), "output image protocol fixed to 160x120 GRAY8 on /judge/custom_byte_block");
 
@@ -406,6 +412,28 @@ private:
       }
     }
 
+    if (acquisition_fps_ > 0.0) {
+      const int enable_ret = MV_CC_SetBoolValue(camera_handle_, "AcquisitionFrameRateEnable", true);
+      if (enable_ret != MV_OK) {
+        RCLCPP_WARN(
+          this->get_logger(),
+          "MV_CC_SetBoolValue(AcquisitionFrameRateEnable=true) failed: %s",
+          as_hex(static_cast<uint32_t>(enable_ret)).c_str());
+      }
+
+      const int fps_ret = MV_CC_SetFloatValue(
+        camera_handle_, "AcquisitionFrameRate", static_cast<float>(acquisition_fps_));
+      if (fps_ret != MV_OK) {
+        RCLCPP_WARN(
+          this->get_logger(),
+          "MV_CC_SetFloatValue(AcquisitionFrameRate=%.2f) failed: %s",
+          acquisition_fps_,
+          as_hex(static_cast<uint32_t>(fps_ret)).c_str());
+      } else {
+        RCLCPP_INFO(this->get_logger(), "AcquisitionFrameRate set to %.2f", acquisition_fps_);
+      }
+    }
+
     MVCC_INTVALUE payload_size_info;
     std::memset(&payload_size_info, 0, sizeof(payload_size_info));
     ret = MV_CC_GetIntValue(camera_handle_, "PayloadSize", &payload_size_info);
@@ -581,9 +609,11 @@ private:
       cv::INTER_AREA);
 
     if (enable_clahe_) {
-      auto clahe = cv::createCLAHE(clahe_clip_limit_, cv::Size(8, 8));
+      if (!clahe_) {
+        clahe_ = cv::createCLAHE(clahe_clip_limit_, cv::Size(8, 8));
+      }
       cv::Mat enhanced;
-      clahe->apply(resized, enhanced);
+      clahe_->apply(resized, enhanced);
       resized = enhanced;
     }
 
@@ -669,6 +699,7 @@ private:
   int camera_index_;
   std::string camera_serial_;
   double publish_fps_;
+  double acquisition_fps_;
   int roi_size_;
   bool enable_clahe_;
   double clahe_clip_limit_;
@@ -682,6 +713,7 @@ private:
   bool is_grabbing_{false};
   bool first_frame_logged_{false};
   std::vector<unsigned char> raw_buffer_;
+  cv::Ptr<cv::CLAHE> clahe_;
 
   rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr image_pub_;
   rclcpp::TimerBase::SharedPtr timer_;

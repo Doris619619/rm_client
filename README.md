@@ -1,5 +1,6 @@
 
-# 2026年香港中文大学(深圳)过岗龙战队哨兵自定义决策系统 
+# 2026赛季香港中文大学(深圳)过岗龙战队
+# 哨兵自定义决策系统 
 
 Bridge RoboMaster judge system (MQTT + Protobuf) to ROS2 topics, provide HTTP JSON state API and a static frontend HUD.
 
